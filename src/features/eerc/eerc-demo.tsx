@@ -1,6 +1,9 @@
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { injected } from 'wagmi/connectors'
 import { useEERC } from './use-eerc-client'
+import { writeContract, readContract } from 'wagmi/actions'
+import { config as wagmiConfig } from '../../lib/wagmi'
+import { erc20Abi } from './erc20-abi'
 import { useState } from 'react'
 
 export default function EercDemo() {
@@ -11,11 +14,17 @@ export default function EercDemo() {
 
   const eerc: any = useEERC?.() ?? {}
   // The SDK exposes balance operations off the eerc object: eerc.useEncryptedBalance(tokenAddress?)
-  const encrypted: any = eerc?.useEncryptedBalance?.() ?? {}
+  const [tokenAddress, setTokenAddress] = useState<string>('')
+  const encrypted: any = eerc?.useEncryptedBalance?.(tokenAddress || undefined) ?? {}
 
   const [regLoading, setRegLoading] = useState(false)
   const [regTx, setRegTx] = useState<string | null>(null)
   const [regError, setRegError] = useState<string | null>(null)
+  const [keyLoading, setKeyLoading] = useState(false)
+  const [keyOk, setKeyOk] = useState<string | null>(null)
+  const [approveLoading, setApproveLoading] = useState(false)
+  const [approveOk, setApproveOk] = useState<string | null>(null)
+  const [approveErr, setApproveErr] = useState<string | null>(null)
 
   return (
     <section style={{ marginTop: 24 }}>
@@ -60,6 +69,25 @@ export default function EercDemo() {
             <span style={{ color: 'crimson' }}>Error: {regError}</span>
           )}
         </div>
+        {!eerc?.isDecryptionKeySet && eerc?.generateDecryptionKey && (
+          <div style={{ marginTop: 8, display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button
+              onClick={async () => {
+                try {
+                  setKeyLoading(true)
+                  const k = await eerc.generateDecryptionKey()
+                  setKeyOk(String(k))
+                } finally {
+                  setKeyLoading(false)
+                }
+              }}
+              disabled={keyLoading}
+            >
+              {keyLoading ? 'Generating key…' : 'Generate Decryption Key'}
+            </button>
+            {keyOk && <span style={{ color: 'green' }}>Key set ✓</span>}
+          </div>
+        )}
       </div>
 
       <div style={{ marginTop: 16 }}>
@@ -74,7 +102,49 @@ export default function EercDemo() {
 
       <div style={{ marginTop: 16 }}>
         <strong>Converter Actions</strong>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <input
+            placeholder="Token address (ERC20)"
+            value={tokenAddress}
+            onChange={(e) => setTokenAddress(e.target.value)}
+            style={{ minWidth: 340 }}
+          />
+          <button
+            onClick={async () => {
+              if (!address || !tokenAddress) return
+              try {
+                setApproveLoading(true)
+                setApproveErr(null)
+                const spender = (import.meta as any).env.VITE_EERC_CONTRACT_ADDRESS as `0x${string}`
+                const allowance: bigint = await readContract(wagmiConfig, {
+                  abi: erc20Abi as any,
+                  address: tokenAddress as `0x${string}`,
+                  functionName: 'allowance',
+                  args: [address as `0x${string}`, spender],
+                }) as any
+                if (allowance > 0n) {
+                  setApproveOk('already-approved')
+                } else {
+                  const hash = await writeContract(wagmiConfig, {
+                    abi: erc20Abi as any,
+                    address: tokenAddress as `0x${string}`,
+                    functionName: 'approve',
+                    args: [spender, 2n ** 256n - 1n],
+                  })
+                  setApproveOk(String(hash))
+                }
+              } catch (err: any) {
+                setApproveErr(err?.message ?? 'Approve failed')
+              } finally {
+                setApproveLoading(false)
+              }
+            }}
+            disabled={!address || !tokenAddress || approveLoading}
+          >
+            {approveLoading ? 'Approving…' : 'Approve'}
+          </button>
+          {approveOk && <span style={{ color: 'green' }}>Approve ✓</span>}
+          {approveErr && <span style={{ color: 'crimson' }}>Error: {approveErr}</span>}
           {/* Converter supports private transfer, deposit, withdraw. */}
           {encrypted?.privateTransfer && address && (
             <button onClick={() => encrypted.privateTransfer(address as `0x${string}`, 1n)}>Self-Transfer 1</button>
