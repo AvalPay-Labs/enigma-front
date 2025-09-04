@@ -4,7 +4,4 @@ dist
 .idea
 .DS_Store
 
-**/*.md
-
 .env
-!README.md
