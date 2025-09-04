@@ -40,6 +40,7 @@ Los siguientes documentos explican el protocolo y los flujos principales. Revisa
 - `sdk-usage.md` — cómo instalar y usar el SDK `@avalabs/eerc-sdk`.
 - `useEERC.md` — inicialización del SDK via hook `useEERC`.
 - `userEncriptedBalance.md` — manejo del hook `useEncryptedBalance` y lectura de balance.
+- `converter-quickstart.md` — guía rápida para configurar circuitos, contrato y ejecutar registro/deposit/transfer/withdraw con el Converter.
 
 Dentro de la app, el componente de demostración `src/features/eerc/eerc-demo.tsx` conecta la wallet, permite registrar, mint/burn y transferir, y muestra el balance encriptado.
 
