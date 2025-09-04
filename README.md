@@ -19,6 +19,8 @@ Variables de entorno relevantes (ver `.env.example`):
 - `VITE_NETWORK` — `fuji` o `mainnet`.
 - `VITE_FUJI_RPC_URL`, `VITE_MAINNET_RPC_URL` — opcionales; por defecto usa las de la cadena.
 - `VITE_EERC_CONTRACT_ADDRESS` — opcional; override del contrato eERC.
+- `VITE_EERC_CIRCUIT_BASE_URL` — base pública donde están los circuitos (`register|transfer|mint|withdraw|burn`). Si no se define, se asume `/circuits/<name>/<name>.wasm|.zkey`.
+  - Overrides finos: `VITE_CIRCUIT_<NAME>_WASM_URL` y `VITE_CIRCUIT_<NAME>_ZKEY_URL` (por ejemplo, `VITE_CIRCUIT_REGISTER_WASM_URL`).
 
 ## Estructura del proyecto
 - `docs/` — documentación de usuario (ver sección siguiente). Imágenes en `docs/assets/`.
@@ -64,6 +66,7 @@ Estos recursos son necesarios/útiles para operar el protocolo end‑to‑end y 
 - Wallet y red: configura `wagmi` para Avalanche Fuji/Mainnet. La app usa `src/lib/wagmi.tsx` con RPCs definidas por entorno.
 - SDK: los hooks se consumen desde `@avalabs/eerc-sdk`. En Next.js pueden surgir problemas de SSR; la integración soportada es Vite.
 - Flujos clave: registro de usuario, mint/deposit, transfer, withdraw/burn y lectura/descifrado de balances. Cada flujo está detallado en `docs/`.
+  - Importante: el SDK necesita URLs de circuitos para ejecutar pruebas ZK. Configura `VITE_EERC_CIRCUIT_BASE_URL` o los overrides individuales si no alojas los archivos en `/circuits`.
 
 ## Estilo de código y organización
 - TypeScript; indentación de 2 espacios; comillas simples; con punto y coma.
@@ -81,4 +84,3 @@ Estos recursos son necesarios/útiles para operar el protocolo end‑to‑end y 
 
 ## Licencia
 Este repositorio se publica con fines de demostración. Revisa los repos externos para conocer sus respectivas licencias.
-

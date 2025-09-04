@@ -1,6 +1,7 @@
 import { useAccount, useConnect, useDisconnect } from 'wagmi'
 import { injected } from 'wagmi/connectors'
-import { useEERC, useEncryptedBalance } from './use-eerc-client'
+import { useEERC } from './use-eerc-client'
+import { useState } from 'react'
 
 export default function EercDemo() {
   const { address, isConnected } = useAccount()
@@ -9,7 +10,12 @@ export default function EercDemo() {
 
 
   const eerc: any = useEERC?.() ?? {}
-  const encrypted: any = useEncryptedBalance?.(address) ?? {}
+  // The SDK exposes balance operations off the eerc object: eerc.useEncryptedBalance(tokenAddress?)
+  const encrypted: any = eerc?.useEncryptedBalance?.() ?? {}
+
+  const [regLoading, setRegLoading] = useState(false)
+  const [regTx, setRegTx] = useState<string | null>(null)
+  const [regError, setRegError] = useState<string | null>(null)
 
   return (
     <section style={{ marginTop: 24 }}>
@@ -29,7 +35,29 @@ export default function EercDemo() {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <span>Status: {String(eerc?.isRegistered ?? 'unknown')}</span>
           {isConnected && eerc?.register && (
-            <button onClick={() => eerc.register()}>Register</button>
+            <button
+              onClick={async () => {
+                try {
+                  setRegLoading(true)
+                  setRegError(null)
+                  const res = await eerc.register()
+                  setRegTx(res?.transactionHash ?? null)
+                } catch (err: any) {
+                  setRegError(err?.message ?? 'Registration failed')
+                } finally {
+                  setRegLoading(false)
+                }
+              }}
+              disabled={regLoading}
+            >
+              {regLoading ? 'Registering…' : 'Register'}
+            </button>
+          )}
+          {regTx && (
+            <span style={{ color: 'green' }}>Registered ✓ tx: {regTx.slice(0, 10)}…</span>
+          )}
+          {regError && (
+            <span style={{ color: 'crimson' }}>Error: {regError}</span>
           )}
         </div>
       </div>
@@ -37,30 +65,25 @@ export default function EercDemo() {
       <div style={{ marginTop: 16 }}>
         <strong>Encrypted Balance</strong>
         <div>
-          <div>value: {String(encrypted?.balance ?? '—')}</div>
-          {encrypted?.refetch && (
-            <button onClick={() => encrypted.refetch()}>Refresh</button>
+          <div>decrypted: {String(encrypted?.parsedDecryptedBalance ?? '—')}</div>
+          {encrypted?.refetchBalance && (
+            <button onClick={() => encrypted.refetchBalance()}>Refresh</button>
           )}
         </div>
       </div>
 
       <div style={{ marginTop: 16 }}>
-        <strong>Actions</strong>
+        <strong>Converter Actions</strong>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {eerc?.mint && (
-            <button onClick={() => eerc.mint(1)}>Mint 1</button>
+          {/* Converter supports private transfer, deposit, withdraw. */}
+          {encrypted?.privateTransfer && address && (
+            <button onClick={() => encrypted.privateTransfer(address as `0x${string}`, 1n)}>Self-Transfer 1</button>
           )}
-          {eerc?.burn && (
-            <button onClick={() => eerc.burn(1)}>Burn 1</button>
+          {encrypted?.deposit && (
+            <button onClick={() => encrypted.deposit(1n)}>Deposit 1</button>
           )}
-          {eerc?.transfer && (
-            <button
-              onClick={() =>
-                eerc.transfer({ to: address, amount: 1 })
-              }
-            >
-              Self-Transfer 1
-            </button>
+          {encrypted?.withdraw && (
+            <button onClick={() => encrypted.withdraw(1n)}>Withdraw 1</button>
           )}
         </div>
       </div>
@@ -71,4 +94,3 @@ export default function EercDemo() {
     </section>
   )
 }
-
